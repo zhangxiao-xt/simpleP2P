@@ -2,18 +2,33 @@ package basic
 
 import "net"
 
-type Agent interface {
-	Send(*Message, *net.UDPAddr) error
-	SavePeer(*Peer)
-	GetPeer(string) *Peer
-	Self() *Peer
-	RegisterToServer(serverUrl string)
+type Peer struct {
+	ID               string
+	NatAddr          *net.UDPAddr
+	LocalAddr        *net.UDPAddr
+	Conn             *net.UDPConn
+	ConnAddr         *net.UDPAddr
+	QuitConnListener chan struct{} `json:"-"`
+	Ok               bool
 }
 
-type Peer struct {
-	ID        string
-	NatAddr   *net.UDPAddr
-	LocalAddr *net.UDPAddr
+type PunchTry struct {
+	ID         string
+	Peer1Reset bool
+	Peer2Reset bool
+	Attempt    int
+}
+
+type Agent interface {
+	Self() *Peer
+	Send(*Message, *net.UDPConn, *net.UDPAddr) error
+	GetPeer(string) *Peer
+	SavePeer(*Peer)
+	Register(string)
+	GetPunchTry(string) *PunchTry
+	SavePunchTry(try *PunchTry)
+	ListenOnPeerConn(*Peer)
+	Listen()
 }
 
 type Message struct {
@@ -21,18 +36,4 @@ type Message struct {
 	PeerID  string      `json:"peer_id"`
 	Error   string      `json:"error,omitempty"`
 	Content interface{} `json:"content,omitempty"`
-}
-
-type ReqEstContent struct {
-	PeerID string `json:"peer_id"`
-}
-
-type EstContent struct {
-	ID        string
-	NatAddr   *net.UDPAddr
-	LocalAddr *net.UDPAddr
-}
-
-type RegContent struct {
-	Address *net.UDPAddr
 }
