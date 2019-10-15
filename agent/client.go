@@ -32,46 +32,78 @@ func handlePunchCommandMsg(msg *basic.Message, addr *net.UDPAddr, agent basic.Ag
 
 	//Peer prepare
 	peer := agent.GetPeer(c.ID)
+	isFirstPunch := false
 	if peer == nil {
+		isFirstPunch = true
 		peer = &basic.Peer{
 			ID:   c.ID,
 			Conn: agent.Self().Conn,
-			Ok:   false,
+			Meta: &basic.PeerMeta{
+				IngressOk: false,
+				EgressOk:  false,
+			},
 		}
 	}
 	peer.NatAddr = c.NatAddr
 	peer.LocalAddr = c.LocalAddr
 	agent.SavePeer(peer)
 
-	//Do punch connection
-	for i := 0; i < 10; i++ {
-
-		_ = agent.Send(&basic.Message{
-			Type:   "PUNCH",
-			PeerID: agent.Self().ID,
-		}, peer.Conn, peer.NatAddr)
-
-		time.Sleep(time.Second * 1)
-
-		if p := agent.GetPeer(peer.ID); p.Ok {
+	//Try local address if it is the first time punch
+	if isFirstPunch {
+		for i := 10; i > 0; i-- {
 
 			_ = agent.Send(&basic.Message{
-				Type:    "NORMAL",
-				PeerID:  agent.Self().ID,
-				Content: "Hi, my friend!",
-			}, p.Conn, p.ConnAddr)
+				Type:   "PUNCH",
+				PeerID: agent.Self().ID,
+			}, peer.Conn, peer.LocalAddr)
 
-			return
+			time.Sleep(time.Millisecond * 100)
+
+			p := agent.GetPeer(peer.ID)
+
+			if p.Meta.IngressOk {
+				i = 30
+			}
+
+			if p.Meta.EgressOk {
+				return
+			}
+
+		}
+	} else {
+
+		//Do punch connection
+		for i := 0; i < 10; i++ {
+
+			_ = agent.Send(&basic.Message{
+				Type:   "PUNCH",
+				PeerID: agent.Self().ID,
+			}, peer.Conn, peer.NatAddr)
+
+			time.Sleep(time.Millisecond * 400)
+
+			p := agent.GetPeer(peer.ID)
+
+			if p.Meta.IngressOk {
+				i = 30
+			}
+
+			if p.Meta.EgressOk {
+				return
+			}
+
 		}
 
 	}
+
+
 
 	//Reset peer conn
 	peer = agent.GetPeer(c.ID)
 
 	if peer.Conn != agent.Self().Conn {
 		_ = peer.Conn.Close()
-		close(peer.QuitConnListener)
+		close(peer.Meta.ListenerQuit)
 	}
 
 	newConn, localAddr := NewUDPConn(-1)
@@ -102,7 +134,9 @@ func handlePunchMsg(msg *basic.Message, addr *net.UDPAddr, agent basic.Agent) {
 	if peer == nil {
 		return
 	}
+
 	peer.ConnAddr = addr
+	peer.Meta.IngressOk = true
 	agent.SavePeer(peer)
 
 	_ = agent.Send(&basic.Message{
@@ -115,7 +149,7 @@ func handlePunchMsg(msg *basic.Message, addr *net.UDPAddr, agent basic.Agent) {
 func handlePunchResponseMsg(msg *basic.Message, addr *net.UDPAddr, agent basic.Agent) {
 
 	peer := agent.GetPeer(msg.PeerID)
-	peer.Ok = true
+	peer.Meta.EgressOk = true
 	peer.ConnAddr = addr
 	agent.SavePeer(peer)
 

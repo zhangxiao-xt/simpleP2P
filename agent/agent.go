@@ -89,10 +89,10 @@ func (c *Agent) ListenOnPeerConn(peer *basic.Peer) {
 		return
 	}
 
-	peer.QuitConnListener = make(chan struct{})
+	peer.Meta.ListenerQuit = make(chan struct{})
 	for {
 		select {
-		case <-peer.QuitConnListener:
+		case <-peer.Meta.ListenerQuit:
 			fmt.Println("!!! close listener")
 			break
 		default:

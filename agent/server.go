@@ -68,6 +68,23 @@ func conductPunchProcess(peer1ID string, peer2ID string, agent basic.Agent) {
 	}()
 
 	var tmpPeer *basic.Peer
+
+	if try.Attempt == 0 {
+		_ = agent.Send(&basic.Message{
+			Type:    "PUNCH-COMMAND",
+			PeerID:  agent.Self().ID,
+			Content: peer2,
+		}, agent.Self().Conn, peer1.NatAddr)
+
+		_ = agent.Send(&basic.Message{
+			Type:    "PUNCH-COMMAND",
+			PeerID:  agent.Self().ID,
+			Content: peer1,
+		}, agent.Self().Conn, peer2.NatAddr)
+
+		return
+	}
+
 	if (try.Attempt % 2) == 1 {
 		tmpPeer = peer1
 		peer1 = peer2

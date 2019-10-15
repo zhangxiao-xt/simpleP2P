@@ -3,13 +3,18 @@ package basic
 import "net"
 
 type Peer struct {
-	ID               string
-	NatAddr          *net.UDPAddr
-	LocalAddr        *net.UDPAddr
-	Conn             *net.UDPConn
-	ConnAddr         *net.UDPAddr
-	QuitConnListener chan struct{} `json:"-"`
-	Ok               bool
+	ID        string
+	NatAddr   *net.UDPAddr
+	LocalAddr *net.UDPAddr
+	ConnAddr  *net.UDPAddr
+	Conn      *net.UDPConn
+	Meta      *PeerMeta
+}
+
+type PeerMeta struct {
+	ListenerQuit chan struct{} `json:"-"`
+	IngressOk    bool
+	EgressOk     bool
 }
 
 type PunchTry struct {
