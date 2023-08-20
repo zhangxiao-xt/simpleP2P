@@ -14,7 +14,7 @@ func main() {
 	server := flag.String("server", "", "server address")
 	flag.Parse()
 	//server := flag.String("server", "47.107.166.228:25728", "server address")
-	//112.126.117.107:23311
+	//112.126.117.107:23311 //test
 
 	agent := agent.New(*port)
 
